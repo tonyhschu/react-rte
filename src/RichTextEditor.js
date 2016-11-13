@@ -17,7 +17,7 @@ import EventEmitter from 'events';
 import {BLOCK_TYPE} from 'draft-js-utils';
 
 import './Draft.global.css';
-import styles from './RichTextEditor.css';
+import defaultStyles from './RichTextEditor.css';
 
 import type {ContentBlock} from 'draft-js';
 import type {ToolbarConfig} from './lib/EditorToolbarConfig';
@@ -51,16 +51,25 @@ type Props = {
   toolbarConfig?: ToolbarConfig;
   blockStyleFn?: (block: ContentBlock) => ?string;
   autoFocus?: boolean;
+  insertCSS?: {[style: string]: {[key: string]: any}};
 };
 
 export default class RichTextEditor extends Component {
   props: Props;
   _keyEmitter: EventEmitter;
+  styles: Object;
 
   constructor() {
     super(...arguments);
     this._keyEmitter = new EventEmitter();
     autobind(this);
+
+
+    if (this.props.insertCSS) {
+      this.styles = Object.assign({}, defaultStyles, this.props.insertCSS);
+    } else {
+      this.styles = defaultStyles
+    }
   }
 
   componentDidMount() {
@@ -93,8 +102,8 @@ export default class RichTextEditor extends Component {
     // If the user changes block type before entering any text, we can either
     // style the placeholder or hide it. Let's just hide it for now.
     let combinedEditorClassName = cx({
-      [styles.editor]: true,
-      [styles.hidePlaceholder]: this._shouldHidePlaceholder(),
+      [this.styles.editor]: true,
+      [this.styles.hidePlaceholder]: this._shouldHidePlaceholder(),
     }, editorClassName);
     if (readOnly == null) {
       readOnly = disabled;
@@ -113,12 +122,12 @@ export default class RichTextEditor extends Component {
       );
     }
     return (
-      <div className={cx(styles.root, className)}>
+      <div className={cx(this.styles.root, className)}>
         {editorToolbar}
         <div className={combinedEditorClassName}>
           <Editor
             {...otherProps}
-            blockStyleFn={composite(defaultBlockStyleFn, blockStyleFn)}
+            blockStyleFn={composite(this._defaultBlockStyleFn, blockStyleFn)}
             customStyleMap={customStyleMap}
             editorState={editorState}
             handleReturn={this._handleReturn}
@@ -279,19 +288,19 @@ export default class RichTextEditor extends Component {
   _focus() {
     this.refs.editor.focus();
   }
-}
 
-function defaultBlockStyleFn(block: ContentBlock): string {
-  let result = styles.block;
-  switch (block.getType()) {
-    case 'unstyled':
-      return cx(result, styles.paragraph);
-    case 'blockquote':
-      return cx(result, styles.blockquote);
-    case 'code-block':
-      return cx(result, styles.codeBlock);
-    default:
-      return result;
+  _defaultBlockStyleFn(block: ContentBlock): string {
+    let result = this.styles.block;
+    switch (block.getType()) {
+      case 'unstyled':
+        return cx(result, this.styles.paragraph);
+      case 'blockquote':
+        return cx(result, this.styles.blockquote);
+      case 'code-block':
+        return cx(result, this.styles.codeBlock);
+      default:
+        return result;
+    }
   }
 }
 
